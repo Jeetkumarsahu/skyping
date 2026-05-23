@@ -84,13 +84,9 @@ install_systemd_service() {
     return
   fi
 
-  printf "\n${BOLD}Install as systemd service?${RESET} [y/N] "
-  read -r REPLY
-  case "$REPLY" in
-    [yY][eE][sS]|[yY])
-      SERVICE_FILE="$HOME/.config/systemd/user/${SERVICE_NAME}.service"
-      mkdir -p "$(dirname "$SERVICE_FILE")"
-      cat > "$SERVICE_FILE" <<EOF
+  SERVICE_FILE="$HOME/.config/systemd/user/${SERVICE_NAME}.service"
+  mkdir -p "$(dirname "$SERVICE_FILE")"
+  cat > "$SERVICE_FILE" <<EOF
 [Unit]
 Description=Skyping agent
 After=network.target
@@ -104,15 +100,9 @@ RestartSec=5
 [Install]
 WantedBy=default.target
 EOF
-      systemctl --user daemon-reload
-      systemctl --user enable "$SERVICE_NAME"
-      systemctl --user start "$SERVICE_NAME"
-      success "Systemd service installed and started"
-      ;;
-    *)
-      info "Skipped. Run manually: ${BINARY_NAME} agent"
-      ;;
-  esac
+  systemctl --user daemon-reload
+  systemctl --user enable "$SERVICE_NAME" 2>/dev/null || true
+  success "Systemd service installed (run: systemctl --user start skyping)"
 }
 
 verify() {
