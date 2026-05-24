@@ -30,7 +30,6 @@ func Start() {
 	fmt.Println("  Press Ctrl+C to stop.")
 	fmt.Println()
 
-	// Handle Ctrl+C
 	go func() {
 		c := make(chan os.Signal, 1)
 		signal.Notify(c, os.Interrupt, syscall.SIGTERM)
@@ -39,20 +38,34 @@ func Start() {
 		os.Exit(0)
 	}()
 
-	// Connect to relay server as agent
-	url := relayServer + "/agent/" + code
-	fmt.Printf("  Connecting to relay server...\n")
+	for {
+		fmt.Println("  Connecting to relay server...")
+		conn, _, err := websocket.DefaultDialer.Dial(relayServer+"/agent/"+code, nil)
+		if err != nil {
+			fmt.Printf("  Error: %v — retrying in 3s...\n", err)
+			time.Sleep(3 * time.Second)
+			continue
+		}
 
-	conn, _, err := websocket.DefaultDialer.Dial(url, nil)
-	if err != nil {
-		fmt.Printf("  Error connecting to relay: %v\n", err)
-		os.Exit(1)
+		fmt.Println("  Waiting for client...")
+
+		// Wait for first message from client (signals client connected)
+		_, _, err = conn.ReadMessage()
+		if err != nil {
+			conn.Close()
+			fmt.Println("  Connection lost, reconnecting...")
+			time.Sleep(1 * time.Second)
+			continue
+		}
+
+		fmt.Println("  Client connected! Starting terminal...")
+		handleSession(conn)
+		conn.Close()
+		fmt.Println("  Session ended. Waiting for new connection...")
 	}
-	defer conn.Close()
+}
 
-	fmt.Println("  Waiting for connection...")
-
-	// Start shell
+func handleSession(conn *websocket.Conn) {
 	shell := os.Getenv("SHELL")
 	if shell == "" {
 		shell = "/bin/bash"
@@ -63,16 +76,12 @@ func Start() {
 
 	ptmx, err := pty.Start(cmd)
 	if err != nil {
-		fmt.Printf("Failed to start shell: %v\n", err)
+		conn.WriteMessage(websocket.TextMessage, []byte("Failed to start shell\r\n"))
 		return
 	}
 	defer ptmx.Close()
 
-	if err == nil {
-		pty.Setsize(ptmx, &pty.Winsize{Rows: 50, Cols: 220})
-	}
-
-	fmt.Println("  Ready! Waiting for client...")
+	pty.Setsize(ptmx, &pty.Winsize{Rows: 50, Cols: 220})
 
 	// pty → relay
 	go func() {
@@ -96,7 +105,6 @@ func Start() {
 	}
 
 	cmd.Wait()
-	fmt.Println("  Session closed.")
 }
 
 func Connect(code string) {

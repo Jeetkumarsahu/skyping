@@ -102,6 +102,10 @@ func handleClient(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fmt.Printf("Client connected: %s\n", code)
+
+	// Signal agent that client connected
+	session.agent.WriteMessage(websocket.TextMessage, []byte("connected"))
+
 	session.client <- conn
 }
 
