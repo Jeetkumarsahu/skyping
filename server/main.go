@@ -15,8 +15,7 @@ var upgrader = websocket.Upgrader{
 
 type Session struct {
 	agent  *websocket.Conn
-	client *websocket.Conn
-	mu     sync.Mutex
+	client chan *websocket.Conn
 }
 
 var (
@@ -47,9 +46,15 @@ func handleAgent(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		return
 	}
+	defer conn.Close()
+
+	session := &Session{
+		agent:  conn,
+		client: make(chan *websocket.Conn, 1),
+	}
 
 	mu.Lock()
-	sessions[code] = &Session{agent: conn}
+	sessions[code] = session
 	mu.Unlock()
 
 	fmt.Printf("Agent connected: %s\n", code)
@@ -58,26 +63,13 @@ func handleAgent(w http.ResponseWriter, r *http.Request) {
 		mu.Lock()
 		delete(sessions, code)
 		mu.Unlock()
-		conn.Close()
 		fmt.Printf("Agent disconnected: %s\n", code)
 	}()
 
-	// Wait for client then bridge
-	for {
-		mu.Lock()
-		session := sessions[code]
-		mu.Unlock()
-
-		if session != nil && session.client != nil {
-			bridge(session)
-			return
-		}
-
-		_, _, err := conn.ReadMessage()
-		if err != nil {
-			return
-		}
-	}
+	// Wait for client to connect
+	client := <-session.client
+	fmt.Printf("Bridging: %s\n", code)
+	bridge(conn, client)
 }
 
 func handleClient(w http.ResponseWriter, r *http.Request) {
@@ -87,38 +79,41 @@ func handleClient(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	mu.Lock()
+	session := sessions[code]
+	mu.Unlock()
+
+	if session == nil {
+		conn, err := upgrader.Upgrade(w, r, nil)
+		if err != nil {
+			return
+		}
+		conn.WriteMessage(websocket.TextMessage, []byte("invalid code"))
+		conn.Close()
+		return
+	}
+
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		return
 	}
 
-	mu.Lock()
-	session := sessions[code]
-	if session == nil {
-		mu.Unlock()
-		conn.WriteMessage(websocket.TextMessage, []byte("invalid code"))
-		conn.Close()
-		return
-	}
-	session.client = conn
-	mu.Unlock()
-
 	fmt.Printf("Client connected: %s\n", code)
-	bridge(session)
+	session.client <- conn
 }
 
-func bridge(s *Session) {
-	done := make(chan struct{})
+func bridge(agent, client *websocket.Conn) {
+	done := make(chan struct{}, 2)
 
 	// agent → client
 	go func() {
-		defer close(done)
+		defer func() { done <- struct{}{} }()
 		for {
-			mt, msg, err := s.agent.ReadMessage()
+			mt, msg, err := agent.ReadMessage()
 			if err != nil {
 				return
 			}
-			if err := s.client.WriteMessage(mt, msg); err != nil {
+			if err := client.WriteMessage(mt, msg); err != nil {
 				return
 			}
 		}
@@ -126,16 +121,19 @@ func bridge(s *Session) {
 
 	// client → agent
 	go func() {
+		defer func() { done <- struct{}{} }()
 		for {
-			mt, msg, err := s.client.ReadMessage()
+			mt, msg, err := client.ReadMessage()
 			if err != nil {
 				return
 			}
-			if err := s.agent.WriteMessage(mt, msg); err != nil {
+			if err := agent.WriteMessage(mt, msg); err != nil {
 				return
 			}
 		}
 	}()
 
 	<-done
+	agent.Close()
+	client.Close()
 }
