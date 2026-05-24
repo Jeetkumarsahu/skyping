@@ -71,11 +71,13 @@ func handleWS(w http.ResponseWriter, r *http.Request) {
 	if shell == "" {
 		shell = "/bin/bash"
 	}
+        cmd := exec.Command(shell)
+        cmd.Env = append(os.Environ(), "TERM=xterm-256color", "COLUMNS=220", "LINES=50")
 
-	cmd := exec.Command(shell)
-	cmd.Env = append(os.Environ(), "TERM=xterm-256color")
-
-	ptmx, err := pty.Start(cmd)
+        ptmx, err := pty.Start(cmd)
+        if err == nil {
+             pty.Setsize(ptmx, &pty.Winsize{Rows: 50, Cols: 220})
+        }
 	if err != nil {
 		conn.WriteMessage(websocket.TextMessage, []byte("Failed to start shell\r\n"))
 		return
