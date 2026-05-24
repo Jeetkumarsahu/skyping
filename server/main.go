@@ -66,10 +66,13 @@ func handleAgent(w http.ResponseWriter, r *http.Request) {
 		fmt.Printf("Agent disconnected: %s\n", code)
 	}()
 
-	// Wait for client to connect
-	client := <-session.client
-	fmt.Printf("Bridging: %s\n", code)
-	bridge(conn, client)
+	// Wait for clients — agent stays alive between sessions
+	for {
+		client := <-session.client
+		fmt.Printf("Bridging: %s\n", code)
+		bridge(conn, client)
+		fmt.Printf("Client disconnected, waiting for new client: %s\n", code)
+	}
 }
 
 func handleClient(w http.ResponseWriter, r *http.Request) {
@@ -134,6 +137,6 @@ func bridge(agent, client *websocket.Conn) {
 	}()
 
 	<-done
-	agent.Close()
 	client.Close()
+	// Agent stays alive for next client
 }
