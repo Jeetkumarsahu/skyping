@@ -47,21 +47,12 @@ func Start() {
 			continue
 		}
 
-		fmt.Println("  Waiting for client...")
-
-		// Wait for first message from client (signals client connected)
-		_, _, err = conn.ReadMessage()
-		if err != nil {
-			conn.Close()
-			fmt.Println("  Connection lost, reconnecting...")
-			time.Sleep(1 * time.Second)
-			continue
-		}
-
-		fmt.Println("  Client connected! Starting terminal...")
+		fmt.Println("  Connected to relay. Waiting for client...")
+		fmt.Println("  Starting terminal session...")
 		handleSession(conn)
 		conn.Close()
-		fmt.Println("  Session ended. Waiting for new connection...")
+		fmt.Println("  Session ended. Reconnecting...")
+		time.Sleep(1 * time.Second)
 	}
 }
 
@@ -71,40 +62,58 @@ func handleSession(conn *websocket.Conn) {
 		shell = "/bin/bash"
 	}
 
+	fmt.Printf("  Starting shell: %s\n", shell)
+
 	cmd := exec.Command(shell)
 	cmd.Env = append(os.Environ(), "TERM=xterm-256color", "COLUMNS=220", "LINES=50")
 
 	ptmx, err := pty.Start(cmd)
 	if err != nil {
+		fmt.Printf("  Failed to start shell: %v\n", err)
 		conn.WriteMessage(websocket.TextMessage, []byte("Failed to start shell\r\n"))
 		return
 	}
 	defer ptmx.Close()
 
 	pty.Setsize(ptmx, &pty.Winsize{Rows: 50, Cols: 220})
+	fmt.Println("  Shell started. Bridging...")
+
+	done := make(chan struct{}, 2)
 
 	// pty → relay
 	go func() {
+		defer func() { done <- struct{}{} }()
 		buf := make([]byte, 1024)
 		for {
 			n, err := ptmx.Read(buf)
 			if err != nil {
+				fmt.Printf("  PTY read error: %v\n", err)
 				return
 			}
-			conn.WriteMessage(websocket.BinaryMessage, buf[:n])
+			if err := conn.WriteMessage(websocket.BinaryMessage, buf[:n]); err != nil {
+				fmt.Printf("  WS write error: %v\n", err)
+				return
+			}
 		}
 	}()
 
 	// relay → pty
-	for {
-		_, msg, err := conn.ReadMessage()
-		if err != nil {
-			break
+	go func() {
+		defer func() { done <- struct{}{} }()
+		for {
+			_, msg, err := conn.ReadMessage()
+			if err != nil {
+				fmt.Printf("  WS read error: %v\n", err)
+				return
+			}
+			ptmx.Write(msg)
 		}
-		ptmx.Write(msg)
-	}
+	}()
 
+	<-done
+	cmd.Process.Kill()
 	cmd.Wait()
+	fmt.Println("  Shell exited.")
 }
 
 func Connect(code string) {
