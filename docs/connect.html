@@ -4,66 +4,176 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Skyping — Connect</title>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@400;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.min.css" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
-      --bg: #0e0e0e; --surface: #161616; --border: #2a2a2a;
-      --green: #22c55e; --text: #f0f0f0; --muted: #888;
-      --mono: 'JetBrains Mono', monospace; --sans: 'Syne', sans-serif;
+      --bg: #111111;
+      --surface: #1a1a1a;
+      --border: #2e2e2e;
+      --green: #4ade80;
+      --text: #f5f5f5;
+      --muted: #777;
+      --mono: 'JetBrains Mono', monospace;
+      --sans: 'Inter', sans-serif;
     }
-    body { background: var(--bg); color: var(--text); font-family: var(--mono); min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem 1.5rem; }
-    h1 { font-family: var(--sans); font-size: 2rem; font-weight: 800; margin-bottom: .5rem; text-align: center; }
+    html, body { height: 100%; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    /* NAV */
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .logo { font-family: var(--mono); font-size: 14px; font-weight: 700; color: var(--green); text-decoration: none; }
+    .nav-back { font-size: 13px; color: var(--muted); text-decoration: none; transition: color .15s; }
+    .nav-back:hover { color: var(--text); }
+
+    /* CONNECT PANEL */
+    .connect-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2.5rem 1.25rem;
+      flex-shrink: 0;
+    }
+    h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: .4rem; text-align: center; }
     h1 span { color: var(--green); }
-    .sub { color: var(--muted); font-size: 13px; text-align: center; margin-bottom: 2.5rem; }
-    .code-inputs { display: flex; gap: 10px; margin-bottom: 1.5rem; }
-    .code-inputs input {
-      width: 52px; height: 64px; text-align: center;
-      font-family: var(--mono); font-size: 24px; font-weight: 700;
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: 8px; color: var(--text); outline: none;
-      transition: border-color .15s;
+    .sub { font-size: 13px; color: var(--muted); margin-bottom: 2rem; text-align: center; }
+
+    .code-inputs {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 1.25rem;
     }
-    .code-inputs input:focus { border-color: var(--green); }
-    .sep { display: flex; align-items: center; color: var(--muted); font-size: 20px; }
+    .digit {
+      width: 48px;
+      height: 60px;
+      text-align: center;
+      font-family: var(--mono);
+      font-size: 22px;
+      font-weight: 700;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      outline: none;
+      transition: border-color .15s;
+      -webkit-appearance: none;
+    }
+    .digit:focus { border-color: var(--green); }
+    .sep { color: var(--muted); font-size: 18px; padding: 0 2px; }
+
     .connect-btn {
-      background: var(--green); color: #000;
-      font-family: var(--sans); font-weight: 800; font-size: 15px;
-      border: none; border-radius: 8px; padding: 12px 40px;
-      cursor: pointer; transition: opacity .15s; width: 100%; max-width: 340px;
+      background: var(--green);
+      color: #000;
+      font-weight: 600;
+      font-size: 14px;
+      border: none;
+      border-radius: 8px;
+      padding: 11px 0;
+      width: 100%;
+      max-width: 304px;
+      cursor: pointer;
+      transition: opacity .15s;
     }
     .connect-btn:hover { opacity: .85; }
-    .connect-btn:disabled { opacity: .4; cursor: not-allowed; }
-    .error { color: #f87171; font-size: 12px; margin-top: 1rem; min-height: 18px; }
-    .back { margin-top: 2rem; font-size: 12px; color: var(--muted); }
-    .back a { color: var(--muted); text-decoration: underline; }
-    #terminal-wrap { display: none; width: 100%; max-width: 900px; margin-top: 2rem; }
-    #terminal-wrap h2 { font-family: var(--sans); font-size: 14px; color: var(--muted); margin-bottom: .75rem; }
-    #terminal { background: #000; border: 1px solid var(--border); border-radius: 10px; width: 100%; padding: .5rem; }
+    .connect-btn:disabled { opacity: .35; cursor: not-allowed; }
+
+    .error-msg {
+      font-size: 12px;
+      color: #f87171;
+      margin-top: .75rem;
+      min-height: 18px;
+      text-align: center;
+    }
+
+    /* STATUS BAR */
+    .status-bar {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      padding: .6rem 1.5rem;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+      font-family: var(--mono);
+      color: var(--muted);
+      flex-shrink: 0;
+    }
+    .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+    .status-code { color: var(--green); }
+
+    /* TERMINAL */
+    .terminal-wrap {
+      display: none;
+      flex: 1;
+      flex-direction: column;
+      overflow: hidden;
+      padding: 8px;
+      background: #000;
+    }
+    #terminal {
+      flex: 1;
+      height: 100%;
+    }
+    .xterm { height: 100% !important; }
+    .xterm-viewport { overflow-y: auto !important; }
+
+    @media (max-width: 480px) {
+      .digit { width: 42px; height: 54px; font-size: 20px; }
+      nav { padding: .85rem 1rem; }
+      .connect-wrap { padding: 2rem 1rem; }
+    }
   </style>
 </head>
 <body>
 
-  <h1>Enter your <span>code</span></h1>
-  <p class="sub">6-digit code from the agent running on the remote machine</p>
+  <nav>
+    <a href="index.html" class="logo">skyping</a>
+    <a href="index.html" class="nav-back">← back</a>
+  </nav>
 
-  <div class="code-inputs">
-    <input class="digit" maxlength="1" inputmode="numeric" pattern="[0-9]" />
-    <input class="digit" maxlength="1" inputmode="numeric" pattern="[0-9]" />
-    <input class="digit" maxlength="1" inputmode="numeric" pattern="[0-9]" />
-    <span class="sep">—</span>
-    <input class="digit" maxlength="1" inputmode="numeric" pattern="[0-9]" />
-    <input class="digit" maxlength="1" inputmode="numeric" pattern="[0-9]" />
-    <input class="digit" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+  <div class="connect-wrap" id="connectWrap">
+    <h1>Enter <span>code</span></h1>
+    <p class="sub">6-digit code from the agent running on the remote machine</p>
+
+    <div class="code-inputs">
+      <input class="digit" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+      <input class="digit" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+      <input class="digit" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+      <span class="sep">—</span>
+      <input class="digit" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+      <input class="digit" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+      <input class="digit" maxlength="1" inputmode="numeric" pattern="[0-9]" />
+    </div>
+
+    <button class="connect-btn" id="connectBtn" disabled>Connect →</button>
+    <div class="error-msg" id="errorMsg"></div>
   </div>
 
-  <button class="connect-btn" id="connectBtn" disabled>Connect →</button>
-  <div class="error" id="error"></div>
-  <div class="back"><a href="index.html">← back to home</a></div>
+  <div class="status-bar" id="statusBar">
+    <span class="status-dot"></span>
+    <span>connected · session</span>
+    <span class="status-code" id="statusCode"></span>
+  </div>
 
-  <div id="terminal-wrap">
-    <h2>terminal session</h2>
+  <div class="terminal-wrap" id="terminalWrap">
     <div id="terminal"></div>
   </div>
 
@@ -72,13 +182,17 @@
   <script>
     const digits = document.querySelectorAll('.digit');
     const btn = document.getElementById('connectBtn');
-    const errorEl = document.getElementById('error');
+    const errorMsg = document.getElementById('errorMsg');
+    const connectWrap = document.getElementById('connectWrap');
+    const statusBar = document.getElementById('statusBar');
+    const terminalWrap = document.getElementById('terminalWrap');
+    const statusCode = document.getElementById('statusCode');
 
     digits.forEach((input, i) => {
       input.addEventListener('input', () => {
         input.value = input.value.replace(/[^0-9]/g, '');
         if (input.value && i < digits.length - 1) digits[i + 1].focus();
-        checkReady();
+        btn.disabled = getCode().length !== 6;
       });
       input.addEventListener('keydown', e => {
         if (e.key === 'Backspace' && !input.value && i > 0) digits[i - 1].focus();
@@ -86,44 +200,47 @@
     });
     digits[0].focus();
 
-    function checkReady() {
-      btn.disabled = getCode().length !== 6;
-    }
-
     function getCode() {
       return [...digits].map(d => d.value).join('');
     }
 
-    btn.addEventListener('click', () => {
-      const code = getCode();
-      errorEl.textContent = '';
-      startSession(code);
-    });
+    btn.addEventListener('click', () => startSession(getCode()));
 
     function startSession(code) {
+      errorMsg.textContent = '';
       btn.disabled = true;
       btn.textContent = 'Connecting...';
+
+      const ws = new WebSocket(`wss://skyping-production.up.railway.app/client/${code}`);
+      ws.binaryType = 'arraybuffer';
 
       const term = new Terminal({
         cursorBlink: true,
         fontSize: 14,
         fontFamily: 'JetBrains Mono, monospace',
-        theme: { background: '#000000' }
+        theme: {
+          background: '#000000',
+          foreground: '#f5f5f5',
+          cursor: '#4ade80',
+          selection: '#4ade8033',
+        },
+        scrollback: 5000,
       });
 
       const fitAddon = new FitAddon.FitAddon();
       term.loadAddon(fitAddon);
 
-      document.getElementById('terminal-wrap').style.display = 'block';
-      term.open(document.getElementById('terminal'));
-      fitAddon.fit();
-
-      const ws = new WebSocket(`wss://skyping-production.up.railway.app/client/${code}`);
-      ws.binaryType = 'arraybuffer';
-
       ws.onopen = () => {
+        // Hide connect panel, show terminal
+        connectWrap.style.display = 'none';
+        statusBar.style.display = 'flex';
+        terminalWrap.style.display = 'flex';
+        statusCode.textContent = code.slice(0,3) + ' ' + code.slice(3);
+
+        term.open(document.getElementById('terminal'));
+        fitAddon.fit();
+
         btn.textContent = 'Connected';
-        term.write('\r\nConnected! Type away...\r\n\r\n');
       };
 
       ws.onmessage = (e) => {
@@ -135,19 +252,19 @@
       };
 
       ws.onerror = () => {
-        errorEl.textContent = 'Connection failed. Make sure the agent is running.';
+        errorMsg.textContent = 'Connection failed. Make sure the agent is running.';
         btn.disabled = false;
         btn.textContent = 'Connect →';
       };
 
       ws.onclose = () => {
-        term.write('\r\n\r\nSession closed.');
+        term.write('\r\n\r\n\x1b[33mSession closed.\x1b[0m\r\n');
+        statusBar.style.background = '#1a1a1a';
+        document.querySelector('.status-dot').style.background = '#777';
       };
 
       term.onData(data => {
-        if (ws.readyState === WebSocket.OPEN) {
-          ws.send(data);
-        }
+        if (ws.readyState === WebSocket.OPEN) ws.send(data);
       });
 
       window.addEventListener('resize', () => fitAddon.fit());
