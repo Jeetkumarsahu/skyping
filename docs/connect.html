@@ -38,14 +38,9 @@
     .error { color: #f87171; font-size: 12px; margin-top: 1rem; min-height: 18px; }
     .back { margin-top: 2rem; font-size: 12px; color: var(--muted); }
     .back a { color: var(--muted); text-decoration: underline; }
-    #terminal-wrap {
-      display: none; width: 100%; max-width: 900px; margin-top: 2rem;
-    }
+    #terminal-wrap { display: none; width: 100%; max-width: 900px; margin-top: 2rem; }
     #terminal-wrap h2 { font-family: var(--sans); font-size: 14px; color: var(--muted); margin-bottom: .75rem; }
-    #terminal {
-      background: #000; border: 1px solid var(--border);
-      border-radius: 10px; width: 100%; padding: .5rem;
-    }
+    #terminal { background: #000; border: 1px solid var(--border); border-radius: 10px; width: 100%; padding: .5rem; }
   </style>
 </head>
 <body>
@@ -123,8 +118,7 @@
       term.open(document.getElementById('terminal'));
       fitAddon.fit();
 
-      // Connect to WebSocket
-      const ws = new WebSocket(`wss://terminal.jeetkumar.space/ws/${code}`);
+      const ws = new WebSocket(`wss://skyping-production.up.railway.app/client/${code}`);
       ws.binaryType = 'arraybuffer';
 
       ws.onopen = () => {
@@ -150,14 +144,12 @@
         term.write('\r\n\r\nSession closed.');
       };
 
-      // Send keystrokes to terminal
       term.onData(data => {
         if (ws.readyState === WebSocket.OPEN) {
           ws.send(data);
         }
       });
 
-      // Resize terminal on window resize
       window.addEventListener('resize', () => fitAddon.fit());
     }
   </script>

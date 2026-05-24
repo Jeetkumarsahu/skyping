@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"math/big"
 	"net"
-	"net/http"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -16,9 +15,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-var upgrader = websocket.Upgrader{
-	CheckOrigin: func(r *http.Request) bool { return true },
-}
+const relayServer = "wss://skyping-production.up.railway.app"
 
 func Start() {
 	code := generateCode()
@@ -28,7 +25,7 @@ func Start() {
 	fmt.Printf("  Your code: %s %s\n", code[:3], code[3:])
 	fmt.Println()
 	fmt.Println("  Share this code with your teammate.")
-	fmt.Printf("  They open: https://terminal.jeetkumar.space/connect.html\n")
+	fmt.Printf("  They open: https://jeetkumar.space/connect.html\n")
 	fmt.Println()
 	fmt.Println("  Press Ctrl+C to stop.")
 	fmt.Println()
@@ -42,49 +39,42 @@ func Start() {
 		os.Exit(0)
 	}()
 
-	// WebSocket server on port 8080
-	http.HandleFunc("/ws/"+code, func(w http.ResponseWriter, r *http.Request) {
-		handleWS(w, r)
-	})
+	// Connect to relay server as agent
+	url := relayServer + "/agent/" + code
+	fmt.Printf("  Connecting to relay server...\n")
 
-	// Also keep TCP for CLI connect
-	go startTCP(code)
-
-	fmt.Println("  Waiting for connection on port 8080...")
-	if err := http.ListenAndServe(":8080", nil); err != nil {
-		fmt.Printf("Error: %v\n", err)
-		os.Exit(1)
-	}
-}
-
-func handleWS(w http.ResponseWriter, r *http.Request) {
-	conn, err := upgrader.Upgrade(w, r, nil)
+	conn, _, err := websocket.DefaultDialer.Dial(url, nil)
 	if err != nil {
-		fmt.Printf("WebSocket upgrade error: %v\n", err)
-		return
+		fmt.Printf("  Error connecting to relay: %v\n", err)
+		os.Exit(1)
 	}
 	defer conn.Close()
 
-	fmt.Println("  Browser connected! Starting terminal session...")
+	fmt.Println("  Waiting for connection...")
 
+	// Start shell
 	shell := os.Getenv("SHELL")
 	if shell == "" {
 		shell = "/bin/bash"
 	}
-        cmd := exec.Command(shell)
-        cmd.Env = append(os.Environ(), "TERM=xterm-256color", "COLUMNS=220", "LINES=50")
 
-        ptmx, err := pty.Start(cmd)
-        if err == nil {
-             pty.Setsize(ptmx, &pty.Winsize{Rows: 50, Cols: 220})
-        }
+	cmd := exec.Command(shell)
+	cmd.Env = append(os.Environ(), "TERM=xterm-256color", "COLUMNS=220", "LINES=50")
+
+	ptmx, err := pty.Start(cmd)
 	if err != nil {
-		conn.WriteMessage(websocket.TextMessage, []byte("Failed to start shell\r\n"))
+		fmt.Printf("Failed to start shell: %v\n", err)
 		return
 	}
 	defer ptmx.Close()
 
-	// pty → browser
+	if err == nil {
+		pty.Setsize(ptmx, &pty.Winsize{Rows: 50, Cols: 220})
+	}
+
+	fmt.Println("  Ready! Waiting for client...")
+
+	// pty → relay
 	go func() {
 		buf := make([]byte, 1024)
 		for {
@@ -96,7 +86,7 @@ func handleWS(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	// browser → pty
+	// relay → pty
 	for {
 		_, msg, err := conn.ReadMessage()
 		if err != nil {
@@ -107,23 +97,6 @@ func handleWS(w http.ResponseWriter, r *http.Request) {
 
 	cmd.Wait()
 	fmt.Println("  Session closed.")
-}
-
-func startTCP(code string) {
-	port := codeToPort(code)
-	ln, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%d", port))
-	if err != nil {
-		return
-	}
-	defer ln.Close()
-
-	conn, err := ln.Accept()
-	if err != nil {
-		return
-	}
-	defer conn.Close()
-
-	handleSession(conn)
 }
 
 func Connect(code string) {
@@ -148,52 +121,13 @@ func Connect(code string) {
 		fmt.Print(".")
 	}
 	if err != nil {
-		fmt.Printf("\n  Could not connect. Make sure the agent is running.\n")
+		fmt.Printf("\n  Could not connect.\n")
 		os.Exit(1)
 	}
 	defer conn.Close()
 
 	fmt.Println("  Connected!")
 	streamTerminal(conn)
-}
-
-func handleSession(conn net.Conn) {
-	shell := os.Getenv("SHELL")
-	if shell == "" {
-		shell = "/bin/bash"
-	}
-
-	cmd := exec.Command(shell)
-	cmd.Env = append(os.Environ(), "TERM=xterm-256color")
-
-	ptmx, err := pty.Start(cmd)
-	if err != nil {
-		fmt.Printf("Failed to start shell: %v\n", err)
-		return
-	}
-	defer ptmx.Close()
-
-	go func() {
-		buf := make([]byte, 1024)
-		for {
-			n, err := conn.Read(buf)
-			if err != nil {
-				return
-			}
-			ptmx.Write(buf[:n])
-		}
-	}()
-
-	buf := make([]byte, 1024)
-	for {
-		n, err := ptmx.Read(buf)
-		if err != nil {
-			break
-		}
-		conn.Write(buf[:n])
-	}
-
-	cmd.Wait()
 }
 
 func streamTerminal(conn net.Conn) {
