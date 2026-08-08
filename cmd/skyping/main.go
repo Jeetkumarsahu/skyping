@@ -18,12 +18,6 @@ func main() {
 	switch os.Args[1] {
 	case "agent":
 		agent.Start()
-	case "connect":
-		if len(os.Args) < 3 {
-			fmt.Println("Usage: skyping connect <6-digit-code>")
-			os.Exit(1)
-		}
-		agent.Connect(os.Args[2])
 	case "--version", "version":
 		fmt.Printf("skyping v%s\n", version)
 	case "--help", "help":
@@ -40,8 +34,7 @@ func printHelp() {
 Skyping — peer-to-peer terminal sharing
 
 Usage:
-  skyping agent              Start agent, get your 6-digit code
-  skyping connect <code>     Connect to a remote terminal session
+  skyping agent              Start agent, share the generated URL
   skyping --version          Show version
   skyping --help             Show this help
 `)

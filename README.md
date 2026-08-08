@@ -2,10 +2,10 @@
 
 # 🔗 skyping
 
-**Share your terminal. Instantly. Peer-to-peer.**
+**Share your terminal privately. Instantly.**
 
-No VPN. No SSH keys. No config files.
-A 6-digit code connects your Linux terminal to anyone — right in their browser.
+No VPN. No SSH keys. No central relay to operate.
+A one-time encrypted link connects your Linux terminal to anyone — right in their browser.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 [![Platform](https://img.shields.io/badge/platform-linux-blue)](https://jeetkumar.space)
@@ -19,14 +19,14 @@ A 6-digit code connects your Linux terminal to anyone — right in their browser
 
 ## Why skyping?
 
-Helping a teammate debug something over a screenshot is painful. Setting up SSH access just for a 5-minute favor is overkill. **skyping** gives you a live, full-featured terminal session in someone's browser — with nothing more than a 6-digit code.
+Helping a teammate debug something over a screenshot is painful. Setting up SSH access just for a 5-minute favor is overkill. **skyping** gives you a live, full-featured terminal session in someone's browser through a one-time encrypted link.
 
 ```sh
 curl -fsSL https://jeetkumar.space/install.sh | sh
 skyping agent
 ```
 
-That's it. Share the code. They connect from any browser — no install required on their end.
+That's it. Share the printed link. They connect from any browser — no install required on their end.
 
 ---
 
@@ -34,8 +34,9 @@ That's it. Share the code. They connect from any browser — no install required
 
 | | |
 |---|---|
-| 🔒 **Encrypted relay** | Your terminal data never sits on disk anywhere |
-| 🌐 **Works over the internet** | No same-network or VPN requirement |
+| 🔐 **End-to-end encrypted** | Terminal input and output are encrypted before they leave either device |
+| 🏠 **Local session host** | The sharer's machine starts the session server; no Skyping relay is required |
+| 🌐 **Works over the internet** | A temporary Cloudflare Quick Tunnel reaches the local session through NAT |
 | 📱 **Mobile-friendly** | Connect from a phone browser if you need to |
 | 💻 **Full PTY support** | `vim`, `htop`, `tmux` — all work exactly as they should |
 | ⚡ **Zero config** | One binary, one command, no YAML to write |
@@ -51,24 +52,32 @@ That's it. Share the code. They connect from any browser — no install required
 curl -fsSL https://jeetkumar.space/install.sh | sh
 ```
 
-Detects your architecture, installs to `~/.local/bin` or `/usr/local/bin`, optionally sets up a systemd service.
+Detects your architecture and installs both `skyping` and the `cloudflared` tunnel helper to `~/.local/bin` or `/usr/local/bin`.
 
 ### 2. Share your terminal
 
 ```sh
 skyping agent
 ```
+
+Example output:
+
+```text
 Skyping agent running
-Your code: 482 916
-Share this code with your teammate
+Share this one-time encrypted link:
+https://jeetkumar.space/connect.html#...
+```
+
 ### 3. They connect
 
-They open **[jeetkumar.space/connect.html](https://jeetkumar.space/connect.html)**, type in the code, and your terminal appears — live — in their browser.
+Send the full printed link to the person you trust. They open it in a modern browser and the terminal appears live. The tunnel address, session authentication secret, and ephemeral public key are held in the URL fragment, so they are not sent to GitHub Pages.
+
+> Treat the link as a password: anyone with it can control the shared terminal while the session is running.
 
 ---
 
 ## 🧱 How it works
-A lightweight relay server pairs your agent with their browser session using your 6-digit code, then streams raw terminal I/O between them in real time via WebSockets. No session data is persisted.
+The agent starts a WebSocket server on `127.0.0.1`, then exposes only that local port through a temporary Cloudflare Quick Tunnel. The browser uses the link fragment to authenticate with the agent and derive an AES-GCM key through P-256 ECDH. Terminal input and output are encrypted before WebSocket transport; stopping the agent closes the local server and tunnel.
 
 ---
 

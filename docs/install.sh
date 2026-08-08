@@ -40,6 +40,26 @@ check_deps() {
   done
 }
 
+install_cloudflared() {
+  if command -v cloudflared >/dev/null 2>&1; then
+    success "cloudflared already installed"
+    return
+  fi
+
+  CLOUDFLARED_URL="https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-${OS}-${ARCH}"
+  TMP_DIR="$(mktemp -d)"
+
+  info "Installing cloudflared tunnel helper (${OS}/${ARCH})..."
+  curl -fsSL "$CLOUDFLARED_URL" -o "${TMP_DIR}/cloudflared" \
+    || error "cloudflared download failed. URL: $CLOUDFLARED_URL"
+
+  chmod +x "${TMP_DIR}/cloudflared"
+  mv "${TMP_DIR}/cloudflared" "${INSTALL_DIR}/cloudflared"
+  rm -rf "$TMP_DIR"
+
+  success "cloudflared installed to ${INSTALL_DIR}/cloudflared"
+}
+
 fetch_latest_version() {
   info "Fetching latest release..."
   VERSION="$(curl -fsSL "https://api.github.com/repos/${REPO}/releases/latest" \
@@ -79,32 +99,6 @@ install_binary() {
   success "Binary installed to ${INSTALL_DIR}/${BINARY_NAME}"
 }
 
-install_systemd_service() {
-  if ! command -v systemctl >/dev/null 2>&1; then
-    return
-  fi
-
-  SERVICE_FILE="$HOME/.config/systemd/user/${SERVICE_NAME}.service"
-  mkdir -p "$(dirname "$SERVICE_FILE")"
-  cat > "$SERVICE_FILE" <<EOF
-[Unit]
-Description=Skyping agent
-After=network.target
-
-[Service]
-Type=simple
-ExecStart=${INSTALL_DIR}/${BINARY_NAME} agent
-Restart=on-failure
-RestartSec=5
-
-[Install]
-WantedBy=default.target
-EOF
-  systemctl --user daemon-reload
-  systemctl --user enable "$SERVICE_NAME" 2>/dev/null || true
-  success "Systemd service installed (run: systemctl --user start skyping)"
-}
-
 verify() {
   if command -v "$BINARY_NAME" >/dev/null 2>&1; then
     success "skyping installed successfully"
@@ -120,9 +114,8 @@ detect_os
 detect_arch
 fetch_latest_version
 install_binary
-install_systemd_service
+install_cloudflared
 verify
 
 printf "\n${BOLD}Done!${RESET} Start sharing:\n\n"
-printf "  ${CYAN}skyping agent${RESET}          # start agent\n"
-printf "  ${CYAN}skyping connect CODE${RESET}   # connect to session\n\n"
+printf "  ${CYAN}skyping agent${RESET}          # start agent and print a secure link\n\n"

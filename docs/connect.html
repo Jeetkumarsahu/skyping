@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Skyping — Connect</title>
+  <title>Skyping — Secure Connect</title>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.min.css" />
   <style>
@@ -27,8 +27,6 @@
       flex-direction: column;
       min-height: 100vh;
     }
-
-    /* NAV */
     nav {
       display: flex;
       align-items: center;
@@ -37,140 +35,47 @@
       border-bottom: 1px solid var(--border);
       flex-shrink: 0;
     }
-    .logo { font-family: var(--mono); font-size: 14px; font-weight: 700; color: var(--green); text-decoration: none; }
-    .nav-back { font-size: 13px; color: var(--muted); text-decoration: none; transition: color .15s; }
-    .nav-back:hover { color: var(--text); }
-
-    /* CONNECT PANEL */
+    .logo {
+      color: var(--green);
+      font-family: var(--mono);
+      font-size: 14px;
+      font-weight: 700;
+      text-decoration: none;
+    }
     .connect-wrap {
-      display: flex;
-      flex-direction: column;
       align-items: center;
+      display: flex;
+      flex: 1;
+      flex-direction: column;
       justify-content: center;
       padding: 2.5rem 1.25rem;
-      flex-shrink: 0;
+      text-align: center;
     }
-    h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: .4rem; text-align: center; }
+    h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: .4rem; }
     h1 span { color: var(--green); }
-    .sub { font-size: 13px; color: var(--muted); margin-bottom: 2rem; text-align: center; }
-
-    .code-inputs {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 1.25rem;
-    }
-    .digit {
-      width: 48px;
-      height: 60px;
-      text-align: center;
-      font-family: var(--mono);
-      font-size: 22px;
-      font-weight: 700;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      color: var(--text);
-      outline: none;
-      transition: border-color .15s;
-      -webkit-appearance: none;
-    }
-    .digit:focus { border-color: var(--green); }
-    .sep { color: var(--muted); font-size: 18px; padding: 0 2px; }
-
-    .connect-btn {
-      background: var(--green);
-      color: #000;
-      font-weight: 600;
-      font-size: 14px;
-      border: none;
-      border-radius: 8px;
-      padding: 11px 0;
-      width: 100%;
-      max-width: 304px;
-      cursor: pointer;
-      transition: opacity .15s;
-    }
-    .connect-btn:hover { opacity: .85; }
-    .connect-btn:disabled { opacity: .35; cursor: not-allowed; }
-
-    .error-msg {
-      font-size: 12px;
-      color: #f87171;
-      margin-top: .75rem;
-      min-height: 18px;
-      text-align: center;
-    }
-
-    /* STATUS BAR */
-    .status-bar {
-      display: none;
-      align-items: center;
-      gap: 8px;
-      padding: .6rem 1.5rem;
-      background: var(--surface);
-      border-top: 1px solid var(--border);
-      border-bottom: 1px solid var(--border);
-      font-size: 12px;
-      font-family: var(--mono);
-      color: var(--muted);
-      flex-shrink: 0;
-    }
-    .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
-    .status-code { color: var(--green); }
-
-    /* TERMINAL */
+    .sub { color: var(--muted); font-size: 13px; }
+    .error-msg { color: #f87171; font-size: 12px; margin-top: .75rem; max-width: 32rem; }
     .terminal-wrap {
+      background: #000;
       display: none;
       flex: 1;
       flex-direction: column;
       overflow: hidden;
       padding: 8px;
-      background: #000;
     }
-    #terminal {
-      flex: 1;
-      height: 100%;
-    }
+    #terminal { flex: 1; height: 100%; }
     .xterm { height: 100% !important; }
-    .xterm-viewport { overflow-y: auto !important; }
-
-    @media (max-width: 480px) {
-      .digit { width: 42px; height: 54px; font-size: 20px; }
-      nav { padding: .85rem 1rem; }
-      .connect-wrap { padding: 2rem 1rem; }
-    }
   </style>
 </head>
 <body>
-
   <nav>
     <a href="index.html" class="logo">skyping</a>
-    <a href="index.html" class="nav-back">← back</a>
   </nav>
 
   <div class="connect-wrap" id="connectWrap">
-    <h1>Enter <span>code</span></h1>
-    <p class="sub">6-digit code from the agent running on the remote machine</p>
-
-    <div class="code-inputs">
-      <input class="digit" maxlength="1" inputmode="numeric" pattern="[0-9]" />
-      <input class="digit" maxlength="1" inputmode="numeric" pattern="[0-9]" />
-      <input class="digit" maxlength="1" inputmode="numeric" pattern="[0-9]" />
-      <span class="sep">—</span>
-      <input class="digit" maxlength="1" inputmode="numeric" pattern="[0-9]" />
-      <input class="digit" maxlength="1" inputmode="numeric" pattern="[0-9]" />
-      <input class="digit" maxlength="1" inputmode="numeric" pattern="[0-9]" />
-    </div>
-
-    <button class="connect-btn" id="connectBtn" disabled>Connect →</button>
+    <h1>Establishing <span>connection</span></h1>
+    <p class="sub" id="statusText">Verifying encrypted session…</p>
     <div class="error-msg" id="errorMsg"></div>
-  </div>
-
-  <div class="status-bar" id="statusBar">
-    <span class="status-dot"></span>
-    <span>connected · session</span>
-    <span class="status-code" id="statusCode"></span>
   </div>
 
   <div class="terminal-wrap" id="terminalWrap">
@@ -180,95 +85,179 @@
   <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.min.js"></script>
   <script>
-    const digits = document.querySelectorAll('.digit');
-    const btn = document.getElementById('connectBtn');
-    const errorMsg = document.getElementById('errorMsg');
+    const statusText = document.getElementById('statusText');
     const connectWrap = document.getElementById('connectWrap');
-    const statusBar = document.getElementById('statusBar');
     const terminalWrap = document.getElementById('terminalWrap');
-    const statusCode = document.getElementById('statusCode');
+    const errorMsg = document.getElementById('errorMsg');
+    const encoder = new TextEncoder();
+    const decoder = new TextDecoder();
 
-    digits.forEach((input, i) => {
-      input.addEventListener('input', () => {
-        input.value = input.value.replace(/[^0-9]/g, '');
-        if (input.value && i < digits.length - 1) digits[i + 1].focus();
-        btn.disabled = getCode().length !== 6;
-      });
-      input.addEventListener('keydown', e => {
-        if (e.key === 'Backspace' && !input.value && i > 0) digits[i - 1].focus();
-      });
-    });
-    digits[0].focus();
-
-    function getCode() {
-      return [...digits].map(d => d.value).join('');
+    function base64UrlToUint8(value) {
+      let normalized = value.replace(/-/g, '+').replace(/_/g, '/');
+      normalized += '='.repeat((4 - normalized.length % 4) % 4);
+      const binary = atob(normalized);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+      return bytes;
     }
 
-    btn.addEventListener('click', () => startSession(getCode()));
+    function concatBytes(...parts) {
+      const length = parts.reduce((total, part) => total + part.length, 0);
+      const combined = new Uint8Array(length);
+      let offset = 0;
+      for (const part of parts) {
+        combined.set(part, offset);
+        offset += part.length;
+      }
+      return combined;
+    }
 
-    function startSession(code) {
-      errorMsg.textContent = '';
-      btn.disabled = true;
-      btn.textContent = 'Connecting...';
+    async function proof(token, role, clientPublicKey, agentPublicKey) {
+      const signingKey = await crypto.subtle.importKey(
+        'raw', token, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
+      );
+      return new Uint8Array(await crypto.subtle.sign(
+        'HMAC',
+        signingKey,
+        concatBytes(encoder.encode('skyping/v1/'), encoder.encode(role), clientPublicKey, agentPublicKey)
+      ));
+    }
 
-      const ws = new WebSocket(`wss://skyping-production.up.railway.app/client/${code}`);
-      ws.binaryType = 'arraybuffer';
+    function fail(message) {
+      statusText.textContent = 'Connection failed';
+      errorMsg.textContent = message;
+    }
 
-      const term = new Terminal({
-        cursorBlink: true,
-        fontSize: 14,
-        fontFamily: 'JetBrains Mono, monospace',
-        theme: {
-          background: '#000000',
-          foreground: '#f5f5f5',
-          cursor: '#4ade80',
-          selection: '#4ade8033',
-        },
-        scrollback: 5000,
-      });
+    async function init() {
+      try {
+        const params = new URLSearchParams(window.location.hash.slice(1));
+        const tunnelURL = decoder.decode(base64UrlToUint8(params.get('u') || ''));
+        const agentPublicKey = base64UrlToUint8(params.get('k') || '');
+        const token = base64UrlToUint8(params.get('t') || '');
 
-      const fitAddon = new FitAddon.FitAddon();
-      term.loadAddon(fitAddon);
-
-      ws.onopen = () => {
-        // Hide connect panel, show terminal
-        connectWrap.style.display = 'none';
-        statusBar.style.display = 'flex';
-        terminalWrap.style.display = 'flex';
-        statusCode.textContent = code.slice(0,3) + ' ' + code.slice(3);
-
-        term.open(document.getElementById('terminal'));
-        fitAddon.fit();
-
-        btn.textContent = 'Connected';
-      };
-
-      ws.onmessage = (e) => {
-        if (e.data instanceof ArrayBuffer) {
-          term.write(new Uint8Array(e.data));
-        } else {
-          term.write(e.data);
+        if (!tunnelURL || agentPublicKey.length === 0 || token.length !== 32) {
+          throw new Error('This is not a valid Skyping share link.');
         }
-      };
 
-      ws.onerror = () => {
-        errorMsg.textContent = 'Connection failed. Make sure the agent is running.';
-        btn.disabled = false;
-        btn.textContent = 'Connect →';
-      };
+        const endpoint = new URL(tunnelURL);
+        if (endpoint.protocol !== 'https:') {
+          throw new Error('The share link must use a secure HTTPS tunnel.');
+        }
+        endpoint.protocol = 'wss:';
+        endpoint.pathname = `${endpoint.pathname.replace(/\/$/, '')}/ws`;
+        endpoint.search = '';
 
-      ws.onclose = () => {
-        term.write('\r\n\r\n\x1b[33mSession closed.\x1b[0m\r\n');
-        statusBar.style.background = '#1a1a1a';
-        document.querySelector('.status-dot').style.background = '#777';
-      };
+        statusText.textContent = 'Generating an encrypted session…';
+        const browserKeys = await crypto.subtle.generateKey(
+          { name: 'ECDH', namedCurve: 'P-256' }, false, ['deriveKey']
+        );
+        const clientPublicKey = new Uint8Array(await crypto.subtle.exportKey('raw', browserKeys.publicKey));
+        const agentKey = await crypto.subtle.importKey(
+          'raw', agentPublicKey, { name: 'ECDH', namedCurve: 'P-256' }, false, []
+        );
+        const sharedKey = await crypto.subtle.deriveKey(
+          { name: 'ECDH', public: agentKey },
+          browserKeys.privateKey,
+          { name: 'AES-GCM', length: 256 },
+          false,
+          ['encrypt', 'decrypt']
+        );
 
-      term.onData(data => {
-        if (ws.readyState === WebSocket.OPEN) ws.send(data);
-      });
+        const clientProof = await proof(token, 'client', clientPublicKey, agentPublicKey);
+        const expectedServerProof = await proof(token, 'server', clientPublicKey, agentPublicKey);
+        const ws = new WebSocket(endpoint.toString());
+        ws.binaryType = 'arraybuffer';
 
-      window.addEventListener('resize', () => fitAddon.fit());
+        let connected = false;
+        let term;
+        let fitAddon;
+        let messageQueue = Promise.resolve();
+
+        ws.onopen = () => {
+          statusText.textContent = 'Authenticating encrypted session…';
+          ws.send(JSON.stringify({
+            publicKey: bytesToBase64Url(clientPublicKey),
+            proof: bytesToBase64Url(clientProof),
+          }));
+        };
+
+        ws.onmessage = event => {
+          messageQueue = messageQueue
+            .then(() => handleMessage(event.data))
+            .catch(error => {
+              ws.close();
+              fail(error.message || 'Unable to verify the remote session.');
+            });
+        };
+
+        async function handleMessage(data) {
+          if (!connected) {
+            if (typeof data !== 'string') throw new Error('Invalid server handshake.');
+            const hello = JSON.parse(data);
+            const serverProof = base64UrlToUint8(hello.proof || '');
+            if (!constantTimeEqual(serverProof, expectedServerProof)) {
+              throw new Error('The remote session could not be verified.');
+            }
+
+            connected = true;
+            connectWrap.style.display = 'none';
+            terminalWrap.style.display = 'flex';
+            term = new Terminal({
+              cursorBlink: true,
+              fontSize: 14,
+              fontFamily: 'JetBrains Mono, monospace',
+              theme: { background: '#000000', foreground: '#f5f5f5', cursor: '#4ade80' },
+              scrollback: 5000,
+            });
+            fitAddon = new FitAddon.FitAddon();
+            term.loadAddon(fitAddon);
+            term.open(document.getElementById('terminal'));
+            fitAddon.fit();
+            window.addEventListener('resize', () => fitAddon.fit());
+
+            term.onData(async input => {
+              if (ws.readyState !== WebSocket.OPEN) return;
+              const iv = crypto.getRandomValues(new Uint8Array(12));
+              const encrypted = await crypto.subtle.encrypt(
+                { name: 'AES-GCM', iv }, sharedKey, encoder.encode(input)
+              );
+              ws.send(concatBytes(iv, new Uint8Array(encrypted)));
+            });
+            return;
+          }
+
+          if (!(data instanceof ArrayBuffer)) throw new Error('Invalid encrypted terminal data.');
+          const payload = new Uint8Array(data);
+          if (payload.length < 28) throw new Error('Invalid encrypted terminal data.');
+          const plaintext = await crypto.subtle.decrypt(
+            { name: 'AES-GCM', iv: payload.slice(0, 12) }, sharedKey, payload.slice(12)
+          );
+          term.write(new Uint8Array(plaintext));
+        }
+
+        ws.onerror = () => fail('The encrypted tunnel could not be reached. Make sure the sharer is still running Skyping.');
+        ws.onclose = () => {
+          if (connected && term) term.write('\r\n\r\n\x1b[33mSession closed.\x1b[0m\r\n');
+        };
+      } catch (error) {
+        fail(error.message || 'Unable to establish an encrypted session.');
+      }
     }
+
+    function bytesToBase64Url(bytes) {
+      let binary = '';
+      for (const byte of bytes) binary += String.fromCharCode(byte);
+      return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    }
+
+    function constantTimeEqual(a, b) {
+      if (a.length !== b.length) return false;
+      let result = 0;
+      for (let i = 0; i < a.length; i += 1) result |= a[i] ^ b[i];
+      return result === 0;
+    }
+
+    init();
   </script>
 </body>
 </html>
